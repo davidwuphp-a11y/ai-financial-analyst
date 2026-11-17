@@ -1,0 +1,76 @@
+"""Generate a static, data-driven preview image for the README.
+
+All values are the real evaluation results from evaluate.py, not decorative placeholders.
+The HTML is static (no JS), so it renders reliably in headless screenshots.
+"""
+
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+
+HTML = """<!DOCTYPE html><html><head><meta charset="utf-8"><style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Segoe UI', -apple-system, sans-serif; background:#0e1117; color:#e6edf3; padding:36px 40px; width:1200px; }
+.head { border-bottom:2px solid #ff8c00; padding-bottom:18px; margin-bottom:26px; }
+.brand { color:#ff8c00; font-size:15px; letter-spacing:1px; font-weight:600; }
+h1 { font-size:30px; margin-top:8px; font-weight:600; }
+.sub { color:#8b98a9; font-size:14px; margin-top:8px; }
+.kpis { display:flex; gap:16px; margin-bottom:28px; }
+.kpi { flex:1; background:#161b24; border:1px solid #232a36; border-left:3px solid #ff8c00; border-radius:8px; padding:18px 20px; }
+.kpi .n { font-size:34px; font-weight:600; color:#ff8c00; }
+.kpi .l { font-size:12px; color:#8b98a9; margin-top:6px; }
+.cols { display:flex; gap:20px; }
+.panel { flex:1; background:#161b24; border:1px solid #232a36; border-radius:10px; padding:20px 22px; }
+.panel h2 { font-size:14px; color:#ff8c00; margin-bottom:16px; font-weight:600; }
+table { width:100%; border-collapse:collapse; font-size:13px; }
+td { padding:7px 4px; border-bottom:1px solid #232a36; }
+td:last-child { text-align:right; color:#e6edf3; font-weight:600; }
+td:first-child { color:#8b98a9; }
+.flow { font-size:12px; line-height:2.1; color:#c9d1d9; }
+.flow b { color:#ff8c00; font-weight:600; }
+.core { margin-top:12px; padding:12px 14px; background:#0e1117; border-radius:6px; border:1px solid #232a36; font-size:12px; color:#8b98a9; }
+.core b { color:#3fb950; }
+.note { margin-top:22px; font-size:12px; color:#6e7681; }
+</style></head><body>
+<div class="head">
+  <div class="brand">▧ AI FINANCIAL ANALYST</div>
+  <h1>可信 AI 财务分析 · 评测概览</h1>
+  <div class="sub">Apple Inc. · Form 10-K FY2023 (ended 2023-09-30) · 公开 SEC 文件 · 数值源自 evaluate.py 实测</div>
+</div>
+
+<div class="kpis">
+  <div class="kpi"><div class="n">100%</div><div class="l">数字提取准确率 · 5/5</div></div>
+  <div class="kpi"><div class="n">100%</div><div class="l">证据溯源覆盖 · 5/5</div></div>
+  <div class="kpi"><div class="n">100%</div><div class="l">幻觉数字拦截 · 3/3</div></div>
+  <div class="kpi"><div class="n">20/20</div><div class="l">单元测试通过</div></div>
+</div>
+
+<div class="cols">
+  <div class="panel">
+    <h2>确定性计算的财务指标</h2>
+    <table>
+      <tr><td>营业收入同比</td><td>-2.80%</td></tr>
+      <tr><td>净利润率</td><td>25.31%</td></tr>
+      <tr><td>资产负债率</td><td>82.37%</td></tr>
+      <tr><td>总资产收益率 ROA</td><td>27.51%</td></tr>
+      <tr><td>经营现金流同比</td><td>-9.50%</td></tr>
+    </table>
+  </div>
+  <div class="panel">
+    <h2>可信架构 · 计算与解释分离</h2>
+    <div class="flow">
+      上传 → <b>证据提取</b> → 校验 → <b>确定性计算</b> → AI 解释 → <b>幻觉拦截</b> → 报告
+    </div>
+    <div class="core">
+      <b>核心原则</b>：AI 只解释经验证的数字，绝不自行计算或编造。<br>
+      每个数字绑定来源文档与页码；AI 文本中的数字经白名单回查，<br>
+      未授权数字在写入报告前被拦截。
+    </div>
+  </div>
+</div>
+
+<div class="note">实验性研究原型 · 非投资建议 · 所有 AI 输出需人工复核 · 仅使用公开或合成数据</div>
+</body></html>"""
+
+(HERE / "preview.html").write_text(HTML, encoding="utf-8")
+print("wrote preview.html")
