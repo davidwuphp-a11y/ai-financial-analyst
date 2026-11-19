@@ -12,6 +12,13 @@ env/
 htmlcov/
 .mypy_cache/
 
+# Environment and credentials
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
 # Streamlit
 .streamlit/secrets.toml
 
