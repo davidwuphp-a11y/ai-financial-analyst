@@ -1,11 +1,9 @@
 """Numeric hallucination guard — defense-in-depth for AI-generated text.
 
-Even when the LLM is told to use only provided figures, it may emit numbers it
-invented. This module extracts every numeric token from the narrative and checks it
-against an allow-list derived from verified figures and computed metrics. Claims that
-contain unauthorised numbers are marked BLOCKED and excluded from the final report.
+The guard first checks numeric allow-list membership, then binds explicitly named
+financial facts to their own values, periods and units. It is intentionally
+conservative: it is not a substitute for a full financial-language parser.
 """
-
 from __future__ import annotations
 
 import re
@@ -17,45 +15,44 @@ NUM_TOKEN_RE = re.compile(r"-?\d[\d,]*\.?\d*\s*%?")
 
 
 def build_allow_list(values: Iterable[float]) -> set[str]:
-    """Normalise trusted numbers into comparable string forms.
-
-    We include the value with 0, 1 and 2 decimal places, plus the integer form, so a
-    metric of 12.34 is not falsely blocked when written as "12.3" or "12".
-    """
+    """Normalise trusted numbers into comparable string forms."""
     allowed: set[str] = set()
-    for v in values:
+    for value in values:
         for decimals in (0, 1, 2):
-            allowed.add(f"{round(v, decimals):.{decimals}f}")
-        allowed.add(f"{int(round(v)):,}")
+            allowed.add(f"{round(value, decimals):.{decimals}f}")
+        allowed.add(f"{int(round(value)):,}")
     return allowed
 
 
 def _numeric_tokens(text: str) -> list[str]:
-    # A 4-digit calendar year (e.g. FY2023) is a period label, not a financial
-    # assertion, so it is not subject to the allow-list check.
+    """Return numeric assertions, excluding standalone fiscal-year labels."""
     return [
-        t.strip() for t in NUM_TOKEN_RE.findall(text)
-        if not re.fullmatch(r"(19|20)\d{2}\s*%?", t.strip())
+        token.strip()
+        for token in NUM_TOKEN_RE.findall(text)
+        if not re.fullmatch(r"(?:19|20)\d{2}\s*%?", token.strip())
     ]
 
 
-def _token_is_allowed(token: str, allowed: set[str]) -> bool:
-    stripped = token.replace("%", "").replace(",", "").strip()
+def _as_float(token: str) -> float | None:
     try:
-        num = float(stripped)
+        return float(token.replace("%", "").replace(",", "").strip())
     except ValueError:
+        return None
+
+
+def _token_is_allowed(token: str, allowed: set[str]) -> bool:
+    value = _as_float(token)
+    if value is None:
         return False
     for decimals in (0, 1, 2):
-        if f"{round(num, decimals):.{decimals}f}" in allowed:
+        if f"{round(value, decimals):.{decimals}f}" in allowed:
             return True
-    if f"{int(round(num)):,}" in allowed:
-        return True
-    return False
+    return f"{int(round(value)):,}" in allowed
 
 
 def validate_claim(text: str, allowed: set[str]) -> Claim:
-    """Validate a single narrative claim; return it with ok/blocked status."""
-    bad = [t for t in _numeric_tokens(text) if not _token_is_allowed(t, allowed)]
+    """Validate a single claim against a numeric allow-list."""
+    bad = [token for token in _numeric_tokens(text) if not _token_is_allowed(token, allowed)]
     if bad:
         return Claim(
             text=text,
@@ -66,43 +63,31 @@ def validate_claim(text: str, allowed: set[str]) -> Claim:
 
 
 def validate_all(texts: Iterable[str], allowed_values: Iterable[float]) -> list[Claim]:
-    """Validate a batch of claims against a set of trusted numeric values."""
+    """Validate a batch of claims against trusted numeric values."""
     allowed = build_allow_list(allowed_values)
-    return [validate_claim(t, allowed) for t in texts]
-
+    return [validate_claim(text, allowed) for text in texts]
 
 
 def validate_claim_against_facts(text: str, figures, metrics) -> Claim:
-    """Validate numbers plus obvious metric/period/unit associations.
+    """Validate numeric membership and explicit fact/value/period/unit associations.
 
-    This is a conservative semantic layer: when a claim explicitly names a known
-    metric or financial concept, its numeric value must match that fact. It does
-    not perform full natural-language understanding and cannot prove causality.
+    Only explicit metric names and unambiguous figure aliases are bound. For example,
+    'revenue growth' is not mistaken for the absolute revenue figure. This is a
+    conservative rule-based check, not general natural-language understanding.
     """
-    from .models import Claim, ClaimStatus
+    from .models import ClaimStatus
 
-    base = validate_claim(
-        text,
-        build_allow_list(
-            [f.value for f in figures] + [m.value for m in metrics]
-        ),
-    )
+    figures = list(figures)
+    metrics = list(metrics)
+    trusted = [figure.value for figure in figures] + [metric.value for metric in metrics]
+    base = validate_claim(text, build_allow_list(trusted))
     if base.status == ClaimStatus.BLOCKED:
         return base
 
-    lowered = text.lower()
+    lowered = text.casefold()
     tokens = _numeric_tokens(text)
+    values = [value for token in tokens if (value := _as_float(token)) is not None]
 
-    def numeric_values(items):
-        values = []
-        for token in items:
-            try:
-                values.append(float(token.replace("%", "").replace(",", "").strip()))
-            except ValueError:
-                continue
-        return values
-
-    mentioned = []
     aliases = {
         "revenue": ("revenue", "net sales"),
         "net_income": ("net income", "net profit"),
@@ -110,42 +95,90 @@ def validate_claim_against_facts(text: str, figures, metrics) -> Claim:
         "total_liabilities": ("total liabilities", "liabilities"),
         "operating_cash_flow": ("operating cash flow", "cash generated by operating activities"),
     }
+
+    mentioned_facts = []
     for figure in figures:
-        names = aliases.get(figure.concept.value, (figure.concept.value.replace("_", " "),))
+        names = aliases.get(
+            figure.concept.value,
+            (figure.concept.value.replace("_", " "),),
+        )
+        if figure.concept.value == "revenue" and re.search(r"\b(revenue|sales)\b.{0,24}\b(growth|yoy)\b", lowered):
+            continue
         if any(name in lowered for name in names):
-            mentioned.append((figure.concept.value, figure.value, figure.period, figure.unit, "figure"))
+            mentioned_facts.append((figure.concept.value, figure.value, figure.period, figure.unit, figure.scale, "figure"))
 
     for metric in metrics:
-        name = metric.name.lower()
-        if name and name in lowered:
-            mentioned.append((metric.name, metric.value, metric.period, metric.unit, "metric"))
+        if metric.name and metric.name.casefold() in lowered:
+            mentioned_facts.append((metric.name, metric.value, metric.period, metric.unit, "", "metric"))
 
-    values = numeric_values(tokens)
-    for label, expected, period, unit, kind in mentioned:
-        if not any(abs(value - expected) <= max(0.011, abs(expected) * 0.00001) for value in values):
+    years = re.findall(r"\b(?:FY\s*)?(20\d{2})\b", text, re.I)
+    currency_markers = {
+        "USD": (r"\bUSD\b", r"\bUS dollars?\b", r"\$"),
+        "CNY": (r"\bCNY\b", r"\bRMB\b", r"\brenminbi\b", r"¥"),
+        "EUR": (r"\bEUR\b", r"\beuros?\b", r"€"),
+        "GBP": (r"\bGBP\b", r"\bpounds?\b", r"£"),
+    }
+
+    for label, expected, period, unit, scale, kind in mentioned_facts:
+        matches = [
+            token for token in tokens
+            if (value := _as_float(token)) is not None
+            and abs(value - expected) <= max(0.011, abs(expected) * 0.00001)
+        ]
+        if not matches:
             return Claim(
                 text=text,
                 status=ClaimStatus.BLOCKED,
                 reason=f"Semantic mismatch: {label} was mentioned without its verified value.",
             )
+
+        if years and period and period.upper().startswith("FY"):
+            if period[2:] not in years:
+                return Claim(
+                    text=text,
+                    status=ClaimStatus.BLOCKED,
+                    reason=f"Period mismatch: {label} belongs to {period}, not the period stated in the claim.",
+                )
+
         if kind == "metric" and unit == "percent":
-            matching = [
-                token for token in tokens
-                if abs(float(token.replace("%", "").replace(",", "").strip()) - expected)
-                <= max(0.011, abs(expected) * 0.00001)
-            ]
-            if matching and not any("%" in token for token in matching):
+            has_percent_unit = (
+                any("%" in token for token in matches)
+                or re.search(r"\b(percent|percentage|pct)\b", lowered) is not None
+            )
+            if not has_percent_unit:
                 return Claim(
                     text=text,
                     status=ClaimStatus.BLOCKED,
                     reason=f"Unit mismatch: {label} must be expressed as a percentage.",
                 )
-        years = re.findall(r"\b(?:FY)?(20\\d{2})\b", text, re.I)
-        if years and period.startswith("FY") and period[2:] not in years:
-            return Claim(
-                text=text,
-                status=ClaimStatus.BLOCKED,
-                reason=f"Period mismatch: {label} belongs to {period}, not the period stated in the claim.",
-            )
+
+        if kind == "figure" and unit.upper() in currency_markers:
+            explicit_currencies = [
+                code for code, patterns in currency_markers.items()
+                if any(re.search(pattern, text, re.I) for pattern in patterns)
+            ]
+            if explicit_currencies and unit.upper() not in explicit_currencies:
+                return Claim(
+                    text=text,
+                    status=ClaimStatus.BLOCKED,
+                    reason=f"Currency mismatch: {label} is recorded in {unit}, not {', '.join(explicit_currencies)}.",
+                )
+
+        if kind == "figure" and scale:
+            scale_words = {
+                "millions": ("million", "mn"),
+                "billions": ("billion", "bn"),
+                "thousands": ("thousand",),
+            }
+            stated = [
+                word for scale_name, words in scale_words.items()
+                if scale_name != scale and any(re.search(rf"\b{word}\b", lowered) for word in words)
+            ]
+            if stated:
+                return Claim(
+                    text=text,
+                    status=ClaimStatus.BLOCKED,
+                    reason=f"Scale mismatch: {label} is recorded in {scale}, not {', '.join(stated)}.",
+                )
 
     return base
