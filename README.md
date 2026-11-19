@@ -88,7 +88,7 @@ pytest tests/ -q
 python evaluate.py
 ```
 
-The app uses the built-in public sample and mock provider by default. No API key is needed.
+The app uses the built-in public sample and mock provider by default. No API key is needed. For a free public demo, see [the Streamlit Community Cloud deployment guide](docs/deployment.md).
 
 ### Optional: OpenAI-compatible provider
 
@@ -136,7 +136,7 @@ Do not commit API keys or secrets. Use environment variables or your deployment 
 - The prototype does not replace accountant, analyst, compliance, or investment-professional review.
 - Upload handling and report generation should be further hardened before any multi-user or public deployment.
 
-See [docs/limitations.md](docs/limitations.md), [docs/methodology.md](docs/methodology.md), [docs/architecture.md](docs/architecture.md), and [SECURITY.md](SECURITY.md).
+See [docs/limitations.md](docs/limitations.md), [docs/methodology.md](docs/methodology.md), [docs/architecture.md](docs/architecture.md), [docs/benchmark.md](docs/benchmark.md), [docs/deployment.md](docs/deployment.md), and [SECURITY.md](SECURITY.md).
 
 ## Security and responsible use
 
