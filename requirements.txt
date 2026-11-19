@@ -5,7 +5,7 @@
 
 # --- Application framework ---
 streamlit>=1.38,<2.0          # Interactive web UI
-pandas>=2.2,<3.0              # Tabular data handling
+pandas>=3.1.1,<4.0              # Tabular data handling
 plotly>=5.24,<6.0             # Interactive financial charts
 pydantic>=2.9,<3.0            # Typed, validated data models
 
