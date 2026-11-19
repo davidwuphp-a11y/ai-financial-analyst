@@ -8,6 +8,7 @@ Run:  streamlit run app.py
 
 from __future__ import annotations
 
+import html
 import json
 import tempfile
 from pathlib import Path
