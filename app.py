@@ -97,9 +97,27 @@ with st.sidebar:
 # ------------------------------------------------------------------ load data
 @st.cache_data(show_spinner=False)
 def load_uploaded(_bytes: bytes, suffix: str):
-    tmp = Path(tempfile.gettempdir()) / f"uploaded_report{suffix}"
-    tmp.write_bytes(_bytes)
-    return read_figures(tmp)
+    # Use a unique temporary file per upload to avoid cross-session collisions.
+    # The file is removed even if parsing fails.
+    import os
+    import tempfile
+
+    with tempfile.NamedTemporaryFile(
+        prefix="ai_financial_",
+        suffix=suffix,
+        dir=tempfile.gettempdir(),
+        delete=False,
+    ) as handle:
+        handle.write(_bytes)
+        temp_path = Path(handle.name)
+
+    try:
+        return read_figures(temp_path)
+    finally:
+        try:
+            temp_path.unlink(missing_ok=True)
+        except OSError:
+            pass
 
 
 if use_demo:
