@@ -3,50 +3,47 @@
 ## 1. Financial formulas
 
 All ratios are computed by pure functions in `src/financial_metrics.py`.
-Units are consistent (figures are normalised to the reported unit before computation).
 
 | Metric | Formula | Notes |
-|--------|---------|-------|
-| Revenue YoY growth | `(rev_t − rev_{t−1}) / rev_{t−1} × 100` | Undefined if prior ≤ 0 |
+|---|---|---|
+| Revenue YoY growth | `(rev_t − rev_{t−1}) / rev_{t−1} × 100` | Undefined if prior-period revenue ≤ 0 |
 | Net margin | `net_income / revenue × 100` | Profitability |
 | Debt-to-asset ratio | `total_liabilities / total_assets × 100` | Leverage |
-| Operating cash flow | `ocf_t − ocf_{t−1}` (absolute) and YoY % | Cash generation |
-| Return on assets (ROA) | `net_income / total_assets × 100` | Efficiency |
-| Current ratio | `current_assets / current_liabilities` | Liquidity (when available) |
+| Operating cash flow | `ocf_t − ocf_{t−1}` and YoY % | Cash generation |
+| Return on assets | `net_income / total_assets × 100` | Efficiency |
+| Current ratio | `current_assets / current_liabilities` | Liquidity, when available |
 
-Percentages are returned as numbers (e.g. `12.5` means 12.5%) and rounded to 2 decimals
-only at presentation time, never before further computation.
+Percentage functions return values such that `12.5` means 12.5%, rounded to two decimals.
 
 ## 2. Extraction approach
 
-- **Primary source**: the downloaded Apple FY2023 Form 10-K (SEC public filing).
-- Figures are located by concept labels (e.g. "Total net sales", "Net income") and the
-  nearest numeric token in the same row/column, using pdfplumber word coordinates.
-- Each extracted `Figure` records the exact page number and the raw text line, so a user
-  can verify the value against the source.
-- When a figure cannot be found, the system returns "not found" — **it never guesses**.
+- PDF extraction uses line-oriented concept matching and is layout-sensitive.
+- CSV/XLSX extraction expects structured rows and period columns.
+- Every extracted `Figure` records a source document and page or sheet when available, plus a text snippet.
+- Missing values are omitted rather than guessed.
+- Upload checks reject oversized files, obvious extension/signature mismatches, malformed XLSX containers, and some archive-expansion risks. These checks do not replace parser isolation or malware scanning.
 
-## 3. Golden dataset
+## 3. Evaluation datasets
 
-A hand-verified reference set (`data/sample_data/golden_figures.json`) stores the expected
-values for the demo filing. The evaluation harness compares extraction output against
-it and reports:
+### Single-filing extraction fixture
 
-- **Extraction accuracy**: share of figures matched to the golden value.
-- **Evidence coverage**: share of figures with a non-empty page reference.
-- **Hallucination block rate**: share of injected fake numbers caught by the guard.
+`data/sample_data/golden_figures.json` stores hand-checked Apple FY2022/FY2023 values. `evaluate.py` reports extraction matching, page evidence coverage, and injected numeric-fake blocking for the included filing only.
 
-## 4. Hallucination guard
+### Multi-company calculation benchmark
 
-The LLM is prompted with `EVIDENCE_MODE`: it must only use numbers present in the
-provided verified context. After generation, a regex scan extracts every numeric token;
-each token is checked against the allow-list (verified figures + computed metrics ±
-tolerance). Any unauthorised number marks the claim `blocked` and it is removed from the
-final report. This is defense-in-depth: prompt constraint + post-hoc validation.
+`data/benchmarks/multi_company_golden.json` contains Apple, Microsoft, and Amazon FY2022/FY2023 reference values and primary-source links. `evaluate_benchmark.py` compares four deterministic ratios against separately stored expected values.
 
-## 5. Limitations
+This benchmark is not a multi-company extraction test. Microsoft's fiscal year ends June 30, while Apple and Amazon have different year-end dates. Amazon FY2023 total liabilities are derived from total assets less total stockholders' equity; the dataset discloses this derivation.
 
-- Extraction is tuned for the demo filing's layout. Arbitrary or scanned PDFs are not
-  reliably supported in v1 — this is stated honestly rather than concealed.
-- The default AI provider is a mock. Real interpretation requires an API key.
-- This tool does not provide investment advice and outputs require human review.
+## 4. Numeric and semantic validation
+
+The guard uses two layers:
+
+1. Numeric allow-list membership: each numeric assertion must match a verified figure or computed metric within the configured rounding tolerance. Standalone four-digit fiscal-year labels are excluded from numeric assertions.
+2. Fact association: explicitly named metrics and selected financial concepts are bound to their own verified values. The guard also checks explicit fiscal-year labels, percentage wording, currency markers, and scale wording where available.
+
+A claim that fails validation is marked blocked and is not shown as a verified narrative claim in the final report. This is defense-in-depth, not proof of full semantic correctness; complex comparisons, implied periods, causal statements, and accounting-policy differences remain outside the guard's reliable scope.
+
+## 5. Human review
+
+Every extracted figure and generated narrative requires review against the original filing. The prototype is not investment advice, accounting advice, or a regulated financial service.
