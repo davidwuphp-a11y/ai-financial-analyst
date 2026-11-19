@@ -17,4 +17,4 @@ Please do not publish sensitive exploit details in a public issue. Contact the m
 
 ## Current security limitations
 
-The project has not undergone a formal security audit. Before public multi-user deployment, file validation, upload limits, temporary-file lifecycle, HTML output escaping, dependency management, and access controls require further review.
+The project has not undergone a formal security audit. Current controls include a 20 MB upload limit, basic content-signature checks, XLSX archive structure and expansion checks, per-upload temporary files with cleanup, HTML output escaping, CI tests, CodeQL, and Dependabot. These controls are not malware scanning or parser sandboxing. Before multi-user deployment, add authentication, authorization, tenant isolation, rate limiting, audit logging, parser isolation, and an independent security review.
