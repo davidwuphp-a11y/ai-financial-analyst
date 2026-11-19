@@ -22,6 +22,7 @@ from src.financial_metrics import compute_all
 from src.hallucination_guard import validate_all
 from src.models import ClaimStatus, Concept, Figure, Metric
 from src.report_generator import build_html_report, build_pdf_report, metrics_bar_html
+from src.upload_security import validate_upload
 
 st.set_page_config(
     page_title="AI Financial Analyst",
@@ -143,10 +144,12 @@ if use_demo:
         ))
 else:
     try:
-        figures = load_uploaded(uploaded.getvalue(), Path(uploaded.name).suffix)
+        upload_bytes = uploaded.getvalue()
+        validate_upload(upload_bytes, uploaded.name)
+        figures = load_uploaded(upload_bytes, Path(uploaded.name).suffix)
         periods = {}
     except Exception as exc:  # noqa: BLE001
-        st.error(f"文件解析失败：{exc}")
+        st.error(f"文件校验或解析失败：{exc}")
         st.stop()
 
 calc = compute_all(periods) if periods else {"metrics": [], "notes": ["上传文件仅提供单期提取视图。"]}
@@ -251,8 +254,8 @@ with tab4:
                 st.markdown(f"✓ {c.text}")
             else:
                 st.markdown(
-                    f'<span class="tag tag-block">已拦截</span> {c.text}<br>'
-                    f'<span style="color:#ff6b6b;font-size:12px">{c.reason}</span>',
+                    f'<span class="tag tag-block">已拦截</span> {__import__(\'html\').escape(c.text)}<br>'
+                    f'<span style="color:#ff6b6b;font-size:12px">{__import__(\'html\').escape(c.reason)}</span>',
                     unsafe_allow_html=True,
                 )
         st.markdown("---")
