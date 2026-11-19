@@ -11,7 +11,7 @@ from typing import Iterable
 
 from .models import Claim, ClaimStatus
 
-NUM_TOKEN_RE = re.compile(r"-?\d[\d,]*\.?\d*\s*%?")
+NUM_TOKEN_RE = re.compile(r"-?\d[\d,]*(?:\.\d+)?\s*%?")
 
 
 def build_allow_list(values: Iterable[float]) -> set[str]:
