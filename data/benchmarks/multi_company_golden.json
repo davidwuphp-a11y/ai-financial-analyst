@@ -1,0 +1,50 @@
+{
+  "benchmark_name": "multi-company-financial-metrics-v1",
+  "scope": "Deterministic calculation and semantic-validation benchmark; not a multi-company document-extraction benchmark.",
+  "unit": "USD millions",
+  "periods": ["FY2022", "FY2023"],
+  "companies": {
+    "Apple Inc.": {
+      "source": "https://investor.apple.com/sec-filings/",
+      "source_note": "Values cross-checked against Apple's FY2023 Form 10-K; FY2022 and FY2023 are presented in USD millions.",
+      "periods": {
+        "FY2022": {"revenue": 394328, "net_income": 99803, "total_assets": 352755, "total_liabilities": 302083, "operating_cash_flow": 122151},
+        "FY2023": {"revenue": 383285, "net_income": 96995, "total_assets": 352583, "total_liabilities": 290437, "operating_cash_flow": 110543}
+      },
+      "expected_metrics_fy2023": {
+        "Revenue YoY growth": -2.8,
+        "Net margin": 25.31,
+        "Debt-to-asset ratio": 82.37,
+        "Operating cash flow YoY": -9.5
+      }
+    },
+    "Microsoft Corporation": {
+      "source": "https://www.microsoft.com/investor/reports/ar23/",
+      "source_note": "FY2023 Annual Report, consolidated financial statements; fiscal year ended June 30, values in USD millions.",
+      "periods": {
+        "FY2022": {"revenue": 198270, "net_income": 72738, "total_assets": 364840, "total_liabilities": 198298, "operating_cash_flow": 89035},
+        "FY2023": {"revenue": 211915, "net_income": 72361, "total_assets": 411976, "total_liabilities": 205753, "operating_cash_flow": 87582}
+      },
+      "expected_metrics_fy2023": {
+        "Revenue YoY growth": 6.88,
+        "Net margin": 34.15,
+        "Debt-to-asset ratio": 49.94,
+        "Operating cash flow YoY": -1.63
+      }
+    },
+    "Amazon.com, Inc.": {
+      "source": "https://www.sec.gov/Archives/edgar/data/1018724/000101872424000008/amzn-20231231.htm",
+      "source_note": "FY2023 Form 10-K, consolidated financial statements; calendar year ended December 31, values in USD millions. Total liabilities are derived as total assets less total stockholders' equity because the balance sheet presents the combined liabilities-and-equity total.",
+      "periods": {
+        "FY2022": {"revenue": 513983, "net_income": -2722, "total_assets": 462675, "total_liabilities": 316632, "operating_cash_flow": 46752},
+        "FY2023": {"revenue": 574785, "net_income": 30425, "total_assets": 527854, "total_liabilities": 325979, "operating_cash_flow": 84946}
+      },
+      "expected_metrics_fy2023": {
+        "Revenue YoY growth": 11.83,
+        "Net margin": 5.29,
+        "Debt-to-asset ratio": 61.76,
+        "Operating cash flow YoY": 81.69
+      }
+    }
+  }
+}
