@@ -140,7 +140,7 @@ def validate_claim_against_facts(text: str, figures, metrics) -> Claim:
                     status=ClaimStatus.BLOCKED,
                     reason=f"Unit mismatch: {label} must be expressed as a percentage.",
                 )
-        years = re.findall(r"\\b(?:FY)?(20\\d{2})\\b", text, re.I)
+        years = re.findall(r"\b(?:FY)?(20\\d{2})\b", text, re.I)
         if years and period.startswith("FY") and period[2:] not in years:
             return Claim(
                 text=text,
