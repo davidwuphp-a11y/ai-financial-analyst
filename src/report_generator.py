@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from html import escape as html_escape, unescape as html_unescape
 from pathlib import Path
 
 import plotly.graph_objects as go
@@ -15,6 +16,11 @@ def _get(obj, key: str, default=None):
     if isinstance(obj, dict):
         return obj.get(key, default)
     return getattr(obj, key, default)
+
+
+def _esc(value) -> str:
+    """Escape untrusted values before inserting them into HTML text nodes."""
+    return html_escape(str(value), quote=True)
 
 
 def _fmt(value: float, unit: str) -> str:
@@ -58,27 +64,27 @@ def build_html_report(
 ) -> str:
     now = datetime.now().strftime("%Y-%m-%d %H:%M")
     rows = "".join(
-        f"<tr><td>{_get(m,'name')}</td><td>{_fmt(_get(m,'value'), _get(m,'unit'))}</td>"
-        f"<td class='mono'>{_get(m,'formula')}</td></tr>"
+        f"<tr><td>{_esc(_get(m,'name'))}</td><td>{_esc(_fmt(_get(m,'value'), _get(m,'unit')))}</td>"
+        f"<td class='mono'>{_esc(_get(m,'formula'))}</td></tr>"
         for m in metrics
     ) or "<tr><td colspan='3'>No metrics available.</td></tr>"
 
     fig_rows = "".join(
-        f"<tr><td>{f.concept.value}</td><td>{f.period}</td><td>{f.value:,.2f} {f.unit}</td>"
-        f"<td>{f.evidence.reference()}</td><td class='snip'>{f.evidence.snippet}</td></tr>"
+        f"<tr><td>{_esc(f.concept.value)}</td><td>{_esc(f.period)}</td><td>{_esc(format(f.value, ',.2f') + ' ' + f.unit)}</td>"
+        f"<td>{_esc(f.evidence.reference())}</td><td class='snip'>{_esc(f.evidence.snippet)}</td></tr>"
         for f in figures
     ) or "<tr><td colspan='5'>No figures extracted.</td></tr>"
 
     allowed_claims = [c for c in claims if c.status == ClaimStatus.OK]
     blocked = [c for c in claims if c.status == ClaimStatus.BLOCKED]
-    claim_html = "".join(f"<li>{c.text}</li>" for c in allowed_claims) or "<li>No analysis generated.</li>"
-    blocked_html = "".join(f"<li>{c.text} <em>({c.reason})</em></li>" for c in blocked)
+    claim_html = "".join(f"<li>{_esc(c.text)}</li>" for c in allowed_claims) or "<li>No analysis generated.</li>"
+    blocked_html = "".join(f"<li>{_esc(c.text)} <em>({_esc(c.reason)})</em></li>" for c in blocked)
 
     chart = metrics_bar_html(metrics)
 
     return f"""<!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8">
-<title>AI Financial Analyst Report — {company}</title>
+<title>AI Financial Analyst Report — {_esc(company)}</title>
 <style>
  body {{ font-family: -apple-system, 'Segoe UI', sans-serif; margin: 0; color: #1a1a1a; }}
  header {{ background: #111827; color: #fff; padding: 28px 40px; }}
@@ -96,7 +102,7 @@ def build_html_report(
 </style></head><body>
 <header>
   <h1>AI Financial Analyst — Analysis Report</h1>
-  <div class="sub">{company} · generated {now} · source: {source}</div>
+  <div class="sub">{_esc(company)} · generated {_esc(now)} · source: {_esc(source)}</div>
 </header>
 <main>
   <h2>1. Key metrics</h2>
@@ -149,7 +155,7 @@ def build_pdf_report(html: str, out_path: str | Path) -> str:
     text = re.sub(r"<style.*?</style>", "", html, flags=re.S)
     text = re.sub(r"<script.*?</script>", "", text, flags=re.S)
     text = re.sub(r"<[^>]+>", " ", text)
-    text = re.sub(r"&nbsp;", " ", text)
+    text = html_unescape(text)
     words = text.split()
     line = ""
     c.setFont("Helvetica", 9)
