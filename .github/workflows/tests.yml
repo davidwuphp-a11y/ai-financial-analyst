@@ -29,3 +29,5 @@ jobs:
         run: pytest tests/ -q
       - name: Run sample evaluation
         run: python evaluate.py
+      - name: Run multi-company benchmark
+        run: python evaluate_benchmark.py
