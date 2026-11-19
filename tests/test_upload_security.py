@@ -6,11 +6,11 @@ from src.upload_security import MAX_UPLOAD_BYTES, validate_upload
 
 
 def test_accepts_pdf_signature():
-    validate_upload(b"%PDF-1.7\\nbody", "report.pdf")
+    validate_upload(b"%PDF-1.7\nbody", "report.pdf")
 
 
 def test_accepts_xlsx_zip_signature():
-    validate_upload(b"PK\\x03\\x04fake-but-signature-valid", "report.xlsx")
+    validate_upload(b"PK\x03\x04fake-but-signature-valid", "report.xlsx")
 
 
 def test_rejects_extension_content_mismatch():
@@ -25,7 +25,7 @@ def test_rejects_oversized_upload():
 
 def test_rejects_binary_csv():
     with pytest.raises(ValueError, match="null bytes"):
-        validate_upload(b"col1\\x00col2", "report.csv")
+        validate_upload(b"col1\x00col2", "report.csv")
 
 
 def test_rejects_unknown_extension():
