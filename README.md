@@ -23,11 +23,11 @@ This project explores a safer division of responsibility for AI-assisted financi
 
 | Area | Current implementation |
 |---|---|
-| Input | PDF, XLSX, and CSV |
+| Input | PDF, XLSX, and CSV; 20 MB limit and file/container validation |
 | Evidence | Document name, page (PDF), and source snippet |
 | Financial calculations | Deterministic, unit-tested functions |
 | AI provider | Offline mock by default; optional OpenAI-compatible endpoint |
-| Numeric validation | Numeric allow-list plus explicit metric/value, period, currency, and scale association checks |
+| Numeric validation | Numeric allow-list plus explicit metric/value, period, currency, and scale association checks |\n| Upload safety | Signature checks, XLSX ZIP integrity/expansion limits, unique temporary files and cleanup |
 | Interface | Streamlit |
 | Export | HTML and PDF reports |
 
