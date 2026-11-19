@@ -171,8 +171,8 @@ def validate_claim_against_facts(text: str, figures, metrics) -> Claim:
                 "thousands": ("thousand",),
             }
             stated = [
-                word for scale_name, words in scale_words.items()
-                if scale_name != scale and any(re.search(rf"\b{word}\b", lowered) for word in words)
+                scale_name for scale_name, words in scale_words.items()
+                if scale_name != scale and any(re.search(rf"\b{candidate}\b", lowered) for candidate in words)
             ]
             if stated:
                 return Claim(
