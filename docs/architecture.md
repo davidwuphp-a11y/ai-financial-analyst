@@ -2,49 +2,49 @@
 
 ## Overview
 
-The system is a layered pipeline. Information flows downward; **numeric authority flows
-only through the deterministic core**. The LLM sits in a side position: it receives
-verified numbers and returns prose, never figures that are trusted as facts.
+The system is a layered pipeline. **Numeric authority stays in the deterministic core.** The LLM receives verified figures and pre-computed metrics, returns prose, and does not supply facts or arithmetic.
 
 ```
-Upload → Ingest → Extract (+evidence) → Verify → Compute (pure) → Interpret (LLM) → Guard → Report
-                                                        │                            │
-                                                   unit tests              numeric allow-list
+Upload → Validate file → Ingest → Extract (+evidence) → Verify
+       → Compute (pure functions) → Interpret (LLM) → Semantic guard → Report
 ```
 
 ## Modules
 
 | Module | Responsibility | Key guarantee |
-|--------|----------------|---------------|
-| `src/document_reader.py` | Read PDF/XLSX/CSV; locate figures with page + snippet | Evidence metadata attached at extraction time |
-| `src/financial_metrics.py` | Pure functions for every ratio | No I/O, no LLM, fully unit-tested |
-| `src/ai_analyst.py` | LLM-backed explanation, configurable provider | Mock by default; returns structured claims |
-| `src/hallucination_guard.py` | Validate every number in AI text against allow-list | Blocks unauthorised figures |
-| `src/report_generator.py` | Render HTML + PDF with charts and evidence | Deterministic export |
-| `src/models.py` | Pydantic schemas (Figure, Metric, Evidence, Claims) | Type-safe contracts between layers |
-| `app.py` | Streamlit UI orchestrating the pipeline | Thin layer; no business logic |
+|---|---|---|
+| `src/upload_security.py` | Size, signature, and XLSX container checks | Early rejection of malformed or oversized inputs; not malware scanning |
+| `src/document_reader.py` | Read PDF/XLSX/CSV and locate figures | Evidence metadata attached at extraction time |
+| `src/financial_metrics.py` | Pure functions for financial ratios | No I/O or LLM; deterministic calculations |
+| `src/ai_analyst.py` | Provider-backed explanation | Mock by default; every generated claim passes through the semantic guard |
+| `src/hallucination_guard.py` | Numeric allow-list and fact association checks | Blocks unverified numbers and explicit metric/value, period, unit, currency, and scale mismatches |
+| `src/report_generator.py` | HTML/PDF output and evidence appendix | Escapes untrusted text before HTML insertion |
+| `src/models.py` | Pydantic Figure, Metric, Evidence, and Claim contracts | Typed contracts between layers |
+| `app.py` | Streamlit orchestration and UI | Thin presentation layer |
 
-## The trust boundary (why this matters)
+## Trust boundary
 
-The central design decision is a **separation of concerns between computation and
-interpretation**:
+1. `financial_metrics.py` computes ratios using deterministic Python functions.
+2. `ai_analyst.py` supplies the LLM only with extracted figures and pre-computed metrics.
+3. `hallucination_guard.py` first checks numeric allow-list membership, then validates explicitly named facts against their own values and associated metadata.
+4. `report_generator.py` includes only claims marked OK in the verified narrative section and escapes untrusted values in HTML output.
 
-1. `financial_metrics.py` computes numbers. Its functions are deterministic and tested.
-2. `ai_analyst.py` may only *narrate* those numbers. It is given the verified set.
-3. `hallucination_guard.py` scans the narrative. Any numeric token not present in the
-   verified set (within tolerance) is flagged and the claim is dropped or rewritten.
+The semantic guard is deliberately rule-based. It is not a general-purpose natural-language parser and cannot prove causal statements or resolve every complex comparison.
 
-This directly addresses the primary failure mode of LLM-based financial tools —
-confidently stated wrong numbers — and is why the project is more than a CRUD demo.
+## Data contracts
 
-## Data flow contracts
+- **Figure:** concept, value, unit, scale, fiscal period, and evidence (document, page/sheet, snippet, confidence).
+- **Metric:** name, value, unit, formula, inputs, and fiscal period.
+- **Claim:** generated text, cited numeric tokens, status, and block reason.
 
-- **Figure**: `{concept, value, unit, period, document, page, snippet, confidence}`
-- **Metric**: `{name, value, formula, inputs, period}`
-- **Claim**: `{text, cited_figures, status}` where status ∈ {ok, blocked}
+## Evaluation and data provenance
+
+- `evaluate.py` checks the included Apple FY2023 filing extraction fixture.
+- `evaluate_benchmark.py` checks deterministic calculations against hand-checked FY2022–FY2023 values for Apple, Microsoft, and Amazon.
+- The multi-company benchmark evaluates calculations, not multi-company PDF extraction. See [benchmark methodology](benchmark.md).
 
 ## Extension points
 
-- Add a real LLM: set `AI_PROVIDER=openai` and provide `AI_API_KEY` env var.
-- Add new ratios: add a pure function + a unit test in `financial_metrics.py`.
-- Add new filings: drop the PDF into `data/sample_data/`.
+- Add a real LLM provider through environment variables; never hard-code credentials.
+- Add financial metrics as pure functions with independent expected-value tests.
+- Add issuer extraction support only with primary-source fixtures, page-level evidence, and documented limitations.
