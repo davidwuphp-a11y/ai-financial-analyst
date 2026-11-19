@@ -12,7 +12,7 @@ pydantic>=2.9,<3.0            # Typed, validated data models
 # --- Document ingestion ---
 pdfplumber>=0.11,<1.0         # PDF text + table extraction with coordinates
 pymupdf>=1.24,<2.0            # Fast page text/rendering, page-number lookup
-openpyxl>=3.1,<4.0            # Excel/CSV reading and writing
+openpyxl>=3.1.5,<4.0            # Excel/CSV reading and writing
 
 # --- Reporting ---
 reportlab>=4.2,<5.0           # Deterministic PDF report generation
