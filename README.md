@@ -27,7 +27,7 @@ This project explores a safer division of responsibility for AI-assisted financi
 | Evidence | Document name, page (PDF), and source snippet |
 | Financial calculations | Deterministic, unit-tested functions |
 | AI provider | Offline mock by default; optional OpenAI-compatible endpoint |
-| Numeric validation | Allow-list check against extracted figures and computed metrics |
+| Numeric validation | Numeric allow-list plus explicit metric/value, period, currency, and scale association checks |
 | Interface | Streamlit |
 | Export | HTML and PDF reports |
 
@@ -49,7 +49,7 @@ Numeric validation
 Human-reviewed report
 ```
 
-The numeric guard is a **defense-in-depth check**, not a proof of semantic correctness. It checks whether numeric tokens appear in the approved value set. It does not yet prove that each value is attached to the correct metric, unit, currency, scale, or fiscal period. A number can be present in the allow-list and still be used in the wrong context.
+The numeric guard is a **defense-in-depth check**, not a proof of semantic correctness. In addition to numeric allow-list membership, the current rule-based layer checks explicitly named metrics against their own verified values, flags mismatched fiscal years, and checks explicit percentage, currency, and scale wording. It is intentionally conservative and does not provide general natural-language understanding or prove causal claims.
 
 ## Evaluation
 
@@ -62,7 +62,7 @@ The included benchmark uses one hand-verified sample from Apple's public FY2023 
 | Injected numeric fakes blocked | 3/3 in the included test cases |
 | Unit tests | Run locally or through GitHub Actions |
 
-These are **sample-specific results**, not a claim of 100% accuracy on arbitrary filings. CI runs the automated test suite on pushes and pull requests; the workflow badge reports the latest CI status.
+These are **sample-specific results**, not a claim of 100% accuracy on arbitrary filings. A separate calculation benchmark now covers Apple, Microsoft, and Amazon FY2022–FY2023 reference data. It checks deterministic ratio calculations against hand-calculated expected values; it does **not** claim multi-company PDF extraction accuracy. Amazon FY2023 total liabilities are derived from reported total assets less reported stockholders’ equity and are disclosed as such in the benchmark metadata. CI runs the automated test suite on pushes and pull requests; the workflow badge reports the latest CI status.
 
 ## Quick start
 
