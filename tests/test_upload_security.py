@@ -1,16 +1,40 @@
-"""Tests for upload size and content-signature validation."""
+"""Tests for upload size, content-signature and XLSX package validation."""
+
+from io import BytesIO
+import zipfile
 
 import pytest
 
 from src.upload_security import MAX_UPLOAD_BYTES, validate_upload
 
 
+def _xlsx_bytes():
+    buffer = BytesIO()
+    with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as archive:
+        archive.writestr("[Content_Types].xml", "<Types/>")
+        archive.writestr("xl/workbook.xml", "<workbook/>")
+    return buffer.getvalue()
+
+
 def test_accepts_pdf_signature():
     validate_upload(b"%PDF-1.7\nbody", "report.pdf")
 
 
-def test_accepts_xlsx_zip_signature():
-    validate_upload(b"PK\x03\x04fake-but-signature-valid", "report.xlsx")
+def test_accepts_valid_xlsx_package():
+    validate_upload(_xlsx_bytes(), "report.xlsx")
+
+
+def test_rejects_malformed_xlsx_package():
+    with pytest.raises(ValueError, match="valid XLSX"):
+        validate_upload(b"PK\x03\x04not-a-zip", "report.xlsx")
+
+
+def test_rejects_xlsx_missing_workbook_parts():
+    buffer = BytesIO()
+    with zipfile.ZipFile(buffer, "w") as archive:
+        archive.writestr("random.txt", "not a workbook")
+    with pytest.raises(ValueError, match="missing required"):
+        validate_upload(buffer.getvalue(), "report.xlsx")
 
 
 def test_rejects_extension_content_mismatch():
