@@ -28,7 +28,7 @@ def _facts():
 def test_metric_must_use_its_own_verified_value():
     figures, metrics = _facts()
     claim = validate_claim_against_facts(
-        "Net margin was 82.37 percent in FY2023.", figures, metrics
+        "Net margin was 383,285 percent in FY2023.", figures, metrics
     )
     assert claim.status == ClaimStatus.BLOCKED
     assert "Semantic mismatch" in claim.reason
