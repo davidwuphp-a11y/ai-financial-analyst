@@ -23,7 +23,7 @@ def validate_upload(data: bytes, filename: str) -> None:
         if not data.startswith(b"%PDF-"):
             raise ValueError("The file extension is PDF, but its content is not a PDF.")
     elif suffix == ".xlsx":
-        if not data.startswith(b"PK\\x03\\x04"):
+        if not data.startswith(b"PK\x03\x04"):
             raise ValueError("The file extension is XLSX, but its content is not an XLSX/ZIP file.")
     elif suffix == ".xls":
         if not data.startswith(bytes.fromhex("D0CF11E0A1B11AE1")):
@@ -36,7 +36,7 @@ def validate_upload(data: bytes, filename: str) -> None:
                 decoded = data.decode("utf-16")
             except UnicodeDecodeError as exc:
                 raise ValueError("CSV must be valid UTF-8 or UTF-16 text.") from exc
-        if "\\x00" in decoded:
+        if "\x00" in decoded:
             raise ValueError("CSV contains binary/null bytes and was rejected.")
     else:
         raise ValueError(f"Unsupported file extension: {suffix or '(none)'}")
