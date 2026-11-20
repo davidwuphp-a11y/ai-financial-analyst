@@ -114,7 +114,9 @@ Never commit API keys or secrets. Use environment variables or your deployment p
 
 ## Free public demo
 
-The app is prepared for Streamlit Community Cloud, but has **not yet been deployed**. Deployment requires the repository owner to sign in and authorize Streamlit through GitHub. Follow [the deployment guide](docs/deployment.md). The default Mock provider needs no secrets.
+**Live demo:** https://ai-financial-analyst-85femw8iudtthcvghkcfzu.streamlit.app/
+
+The app is deployed on Streamlit Community Cloud using Python 3.11. The public demo uses the built-in Apple FY2023 sample and the offline Mock provider; no API key or secrets are configured. Use public or synthetic documents only.
 
 ## Project structure
 
