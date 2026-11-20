@@ -255,8 +255,8 @@ with tab4:
                 st.markdown(f"✓ {c.text}")
             else:
                 st.markdown(
-                    f'<span class="tag tag-block">已拦截</span> {__import__(\'html\').escape(c.text)}<br>'
-                    f'<span style="color:#ff6b6b;font-size:12px">{__import__(\'html\').escape(c.reason)}</span>',
+                    f'<span class="tag tag-block">已拦截</span> {html.escape(c.text)}<br>'
+                    f'<span style="color:#ff6b6b;font-size:12px">{html.escape(c.reason)}</span>',
                     unsafe_allow_html=True,
                 )
         st.markdown("---")
